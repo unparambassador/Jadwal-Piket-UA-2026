@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jadwal Piket Ambassador</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f4ff; min-height: 100vh; }
+
+    .header {
+      background: linear-gradient(135deg, #1a237e 0%, #3949ab 60%, #5c6bc0 100%);
+      color: white; padding: 28px 24px 20px;
+      box-shadow: 0 4px 20px rgba(26,35,126,0.3);
+    }
+    .header-inner { max-width: 720px; margin: 0 auto; }
+    .header-sub { font-size: 13px; opacity: 0.75; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+    .header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+    .header p { margin-top: 6px; opacity: 0.8; font-size: 14px; }
+
+    .main { max-width: 720px; margin: 0 auto; padding: 20px 16px; }
+
+    .nav-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      background: white; border-radius: 16px; padding: 12px 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 16px;
+    }
+    .nav-btn {
+      width: 36px; height: 36px; border-radius: 50%; border: none;
+      background: #f0f4ff; color: #3949ab; font-size: 22px;
+      cursor: pointer; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    }
+    .nav-btn:hover { background: #dde3ff; }
+    .nav-title { font-weight: 700; font-size: 18px; color: #1a237e; text-align: center; }
+    .loading-txt { font-size: 11px; color: #999; margin-top: 2px; text-align: center; }
+
+    .view-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+    .view-btn {
+      flex: 1; padding: 9px 0; border-radius: 10px; border: none; cursor: pointer;
+      font-weight: 600; font-size: 13px; transition: all 0.2s;
+      background: white; color: #666; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .view-btn.active {
+      background: #3949ab; color: white;
+      box-shadow: 0 2px 8px rgba(57,73,171,0.3);
+    }
+
+    /* Calendar */
+    .calendar-wrap { background: white; border-radius: 16px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .day-headers { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 8px; }
+    .day-header { text-align: center; font-size: 11px; font-weight: 700; color: #3949ab; padding: 4px 0; letter-spacing: 0.5px; }
+    .day-header.sun { color: #e05c97; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-cell {
+      min-height: 72px; border-radius: 10px; padding: 6px 5px;
+      cursor: pointer; transition: transform 0.15s;
+      background: #fafafa; border: 1.5px solid #eee; position: relative;
+    }
+    .cal-cell:hover { transform: scale(1.03); }
+    .cal-cell.today { background: #e8eaf6; border: 2px solid #3949ab; }
+    .cal-cell.empty { cursor: default; border: none; background: none; }
+    .cal-day-num { font-weight: 600; font-size: 12px; color: #333; margin-bottom: 3px; }
+    .cal-cell.today .cal-day-num { font-weight: 800; color: #1a237e; }
+    .cal-day-num.sun { color: #e05c97; }
+    .cal-day-num.sat { color: #5c6bc0; }
+    .avatars { display: flex; flex-wrap: wrap; gap: 2px; }
+    .avatar {
+      width: 20px; height: 20px; border-radius: 50%; color: white;
+      font-size: 7px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    }
+    .avatar.more { background: #ccc; color: #555; }
+    .count-badge {
+      position: absolute; top: 4px; right: 4px;
+      background: #3949ab; color: white; border-radius: 8px;
+      font-size: 9px; font-weight: 700; padding: 1px 4px;
+    }
+
+    /* List view */
+    .list-wrap { display: flex; flex-direction: column; gap: 10px; }
+    .list-empty {
+      text-align: center; padding: 48px 20px; background: white;
+      border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      color: #999; font-size: 15px;
+    }
+    .list-card { background: white; border-radius: 14px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .list-date { font-weight: 700; color: #1a237e; font-size: 14px; margin-bottom: 8px; }
+    .name-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      display: flex; align-items: center; gap: 6px;
+      background: #f0f4ff; border-radius: 20px; padding: 5px 10px 5px 6px;
+    }
+    .chip-avatar {
+      width: 26px; height: 26px; border-radius: 50%; color: white;
+      font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .chip-name { font-size: 13px; font-weight: 600; color: #333; }
+    .chip-del { border: none; background: none; cursor: pointer; color: #ccc; font-size: 14px; line-height: 1; }
+    .chip-del:hover { color: #e05c97; }
+
+    /* Legend */
+    .legend {
+      margin-top: 16px; background: white; border-radius: 12px; padding: 12px 16px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06); font-size: 12px; color: #666;
+      display: flex; gap: 16px; flex-wrap: wrap;
+    }
+
+    /* Overlay */
+    .overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      align-items: center; justify-content: center; z-index: 1000; padding: 16px;
+    }
+    .overlay.show { display: flex; }
+    .modal {
+      background: white; border-radius: 20px; padding: 24px 20px;
+      width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal h3 { color: #1a237e; font-size: 18px; margin-bottom: 4px; }
+    .modal .modal-date { color: #666; font-size: 13px; margin-bottom: 16px; }
+    .section-label { font-size: 12px; font-weight: 600; color: #999; margin-bottom: 6px; }
+    .existing-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .modal input {
+      width: 100%; padding: 10px 14px; border-radius: 10px;
+      border: 1.5px solid #dde; font-size: 14px; outline: none; font-family: inherit;
+    }
+    .modal input:focus { border-color: #3949ab; }
+    .modal-btns { display: flex; gap: 8px; margin-top: 12px; }
+    .btn-cancel {
+      flex: 1; padding: 10px 0; border-radius: 10px; border: 1.5px solid #dde;
+      background: white; color: #666; font-weight: 600; font-size: 14px; cursor: pointer;
+    }
+    .btn-submit {
+      flex: 2; padding: 10px 0; border-radius: 10px; border: none;
+      background: #3949ab; color: white; font-weight: 700; font-size: 14px; cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-submit:hover { background: #2c3a9e; }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-del-red { background: #e05c97 !important; }
+
+    /* Toast */
+    .toast {
+      display: none; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      color: white; border-radius: 12px; padding: 12px 20px;
+      font-size: 14px; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      z-index: 9999; white-space: nowrap;
+    }
+    .toast.show { display: block; }
+    .toast.success { background: #27ae60; }
+    .toast.error { background: #c0392b; }
+
+    @media (max-width: 480px) {
+      .cal-cell { min-height: 56px; }
+      .avatar { width: 16px; height: 16px; font-size: 6px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-sub">Universitas Katolik Parahyangan</div>
+    <h1>📋 Jadwal Piket Ambassador</h1>
+    <p>Klik tanggal untuk mendaftar piket · Data tersimpan di Google Sheets</p>
+  </div>
+</div>
+
+<div class="main">
+  <div class="nav-bar">
+    <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+    <div>
+      <div class="nav-title" id="monthTitle"></div>
+      <div class="loading-txt" id="loadingTxt" style="display:none">Memuat…</div>
+    </div>
+    <button class="nav-btn" onclick="changeMonth(1)">›</button>
+  </div>
+
+  <div class="view-toggle">
+    <button class="view-btn active" id="btnCalendar" onclick="setView('calendar')">📅 Kalender</button>
+    <button class="view-btn" id="btnList" onclick="setView('list')">📋 Daftar</button>
+  </div>
+
+  <div id="calendarView"></div>
+  <div id="listView" style="display:none"></div>
+
+  <div class="legend">
+    <span>💡 <b>Klik tanggal</b> untuk daftar piket</span>
+    <span>✕ <b>Hapus</b> dari daftar piket</span>
+    <span>📌 Data tersimpan di <b>Google Sheets</b></span>
+  </div>
+</div>
+
+<!-- Modal Daftar -->
+<div class="overlay" id="modalOverlay" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3>Daftar Piket</h3>
+    <p class="modal-date" id="modalDate"></p>
+    <div id="existingSection" style="display:none">
+      <div class="section-label" id="existingLabel"></div>
+      <div class="existing-chips" id="existingChips"></div>
+    </div>
+    <div class="section-label">DAFTAR PIKET BARU</div>
+    <input type="text" id="nameInput" placeholder="Masukkan nama kamu..." onkeydown="if(event.key==='Enter') submitPiket()" />
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Batal</button>
+      <button class="btn-submit" id="submitBtn" onclick="submitPiket()">✅ Daftar Piket</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Hapus -->
+<div class="overlay" id="deleteOverlay" onclick="closeDelete()">
+  <div class="modal" style="max-width:340px" onclick="event.stopPropagation()">
+    <h3 style="color:#c0392b;font-size:16px">🗑️ Hapus Piket</h3>
+    <p style="color:#555;font-size:14px;margin:8px 0 16px" id="deleteMsg"></p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeDelete()">Batal</button>
+      <button class="btn-submit btn-del-red" onclick="confirmDelete()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ============================================================
+  // GANTI URL INI dengan Web App URL dari Google Apps Script kamu
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXEwUb7JWJvTEHd6QjfZOgBDDEfVdMVq7FHt9oVuim76Qn4oTyr8bd49Ccfaqsb4u2pw/exec";
+  // ============================================================
+
+  const HARI = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
+  const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+  const COLORS = ["#4f8ef7","#e05c97","#f5a623","#27ae60","#8e44ad","#e74c3c","#16a085","#d35400","#2980b9","#c0392b"];
+
+  let year = new Date().getFullYear();
+  let month = new Date().getMonth();
+  let piketData = {};
+  let currentView = "calendar";
+  let modalDateStr = "";
+  let deleteDateStr = "", deleteName = "";
+
+  function getColor(name) {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return COLORS[Math.abs(hash) % COLORS.length];
+  }
+
+  function getInitial(name) {
+    return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+  }
+
+  function pad(n) { return String(n).padStart(2, "0"); }
+
+  function toDateStr(y, m, d) { return `${y}-${pad(m+1)}-${pad(d)}`; }
+
+  function bulanStr() { return `${year}-${pad(month+1)}`; }
+
+  function showToast(msg, type = "success") {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = `toast show ${type}`;
+    setTimeout(() => t.className = "toast", 3000);
+  }
+
+  function setLoading(on) {
+    document.getElementById("loadingTxt").style.display = on ? "block" : "none";
+  }
+
+  async function fetchPiket() {
+    setLoading(true);
+    try {
+      const res = await fetch(`${SCRIPT_URL}?action=getAll&bulan=${bulanStr()}`);
+      const json = await res.json();
+      if (json.success) {
+        piketData = {};
+        for (const item of json.data) {
+          if (!piketData[item.tanggal]) piketData[item.tanggal] = [];
+          piketData[item.tanggal].push(item.nama);
+        }
+        render();
+      }
+    } catch (e) {
+      showToast("Gagal memuat data. Cek SCRIPT_URL.", "error");
+    }
+    setLoading(false);
+  }
+
+  function changeMonth(dir) {
+    month += dir;
+    if (month < 0) { month = 11; year--; }
+    if (month > 11) { month = 0; year++; }
+    fetchPiket();
+  }
+
+  function setView(v) {
+    currentView = v;
+    document.getElementById("calendarView").style.display = v === "calendar" ? "block" : "none";
+    document.getElementById("listView").style.display = v === "list" ? "block" : "none";
+    document.getElementById("btnCalendar").className = "view-btn" + (v === "calendar" ? " active" : "");
+    document.getElementById("btnList").className = "view-btn" + (v === "list" ? " active" : "");
+  }
+
+  function render() {
+    document.getElementById("monthTitle").textContent = `${BULAN[month]} ${year}`;
+    renderCalendar();
+    renderList();
+  }
+
+  function renderCalendar() {
+    const today = new Date();
+    const todayStr = toDateStr(today.getFullYear(), today.getMonth(), today.getDate());
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDay = new Date(year, month, 1).getDay();
+
+    let html = `<div class="calendar-wrap">
+      <div class="day-headers">`;
+    HARI.forEach((h, i) => {
+      html += `<div class="day-header${i===0?' sun':''}">${h}</div>`;
+    });
+    html += `</div><div class="cal-grid">`;
+
+    for (let i = 0; i < firstDay; i++) html += `<div class="cal-cell empty"></div>`;
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = toDateStr(year, month, d);
+      const names = piketData[dateStr] || [];
+      const dow = new Date(year, month, d).getDay();
+      const isToday = dateStr === todayStr;
+      const isSun = dow === 0, isSat = dow === 6;
+
+      let avatarsHtml = names.slice(0, 3).map(n =>
+        `<div class="avatar" style="background:${getColor(n)}" title="${n}">${getInitial(n)}</div>`
+      ).join("");
+      if (names.length > 3) avatarsHtml += `<div class="avatar more">+${names.length - 3}</div>`;
+
+      html += `<div class="cal-cell${isToday?' today':''}" onclick="openModal('${dateStr}', ${d})">
+        <div class="cal-day-num${isSun?' sun':isSat?' sat':''}">${d}</div>
+        <div class="avatars">${avatarsHtml}</div>
+        ${names.length > 0 ? `<div class="count-badge">${names.length}</div>` : ''}
+      </div>`;
+    }
+
+    html += `</div></div>`;
+    document.getElementById("calendarView").innerHTML = html;
+  }
+
+  function renderList() {
+    const entries = Object.entries(piketData).sort(([a],[b]) => a.localeCompare(b));
+    if (entries.length === 0) {
+      document.getElementById("listView").innerHTML = `<div class="list-wrap"><div class="list-empty">Belum ada yang mendaftar piket bulan ini</div></div>`;
+      return;
+    }
+
+    let html = `<div class="list-wrap">`;
+    for (const [date, names] of entries) {
+      const [y, m, d] = date.split("-").map(Number);
+      const dow = new Date(y, m-1, d).getDay();
+      const label = `${HARI[dow]}, ${d} ${BULAN[m-1]} ${y}`;
+      const chips = names.map(n => `
+        <div class="chip">
+          <div class="chip-avatar" style="background:${getColor(n)}">${getInitial(n)}</div>
+          <span class="chip-name">${n}</span>
+          <button class="chip-del" onclick="openDelete('${date}','${n.replace(/'/g,"\\'")}')">✕</button>
+        </div>`).join("");
+      html += `<div class="list-card">
+        <div class="list-date">📅 ${label}</div>
+        <div class="name-chips">${chips}</div>
+      </div>`;
+    }
+    html += `</div>`;
+    document.getElementById("listView").innerHTML = html;
+  }
+
+  function openModal(dateStr, day) {
+    modalDateStr = dateStr;
+    const dow = new Date(year, month, day).getDay();
+    document.getElementById("modalDate").textContent = `📅 ${HARI[dow]}, ${day} ${BULAN[month]} ${year}`;
+    document.getElementById("nameInput").value = "";
+
+    const names = piketData[dateStr] || [];
+    const sec = document.getElementById("existingSection");
+    if (names.length > 0) {
+      document.getElementById("existingLabel").textContent = `SUDAH DAFTAR (${names.length})`;
+      document.getElementById("existingChips").innerHTML = names.map(n => `
+        <div class="chip">
+          <div class="chip-avatar" style="background:${getColor(n)};width:22px;height:22px;font-size:8px">${getInitial(n)}</div>
+          <span class="chip-name">${n}</span>
+          <button class="chip-del" onclick="openDelete('${dateStr}','${n.replace(/'/g,"\\'")}');closeModal()">✕</button>
+        </div>`).join("");
+      sec.style.display = "block";
+    } else {
+      sec.style.display = "none";
+    }
+
+    document.getElementById("modalOverlay").classList.add("show");
+    setTimeout(() => document.getElementById("nameInput").focus(), 100);
+  }
+
+  function closeModal() {
+    document.getElementById("modalOverlay").classList.remove("show");
+  }
+
+  async function submitPiket() {
+    const nama = document.getElementById("nameInput").value.trim();
+    if (!nama) return showToast("Nama tidak boleh kosong", "error");
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = true; btn.textContent = "Menyimpan…";
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "add", tanggal: modalDateStr, nama })
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast("✅ Berhasil mendaftar piket!");
+        closeModal();
+        fetchPiket();
+      } else {
+        showToast(json.error || "Gagal mendaftar", "error");
+      }
+    } catch { showToast("Error koneksi ke server", "error"); }
+    btn.disabled = false; btn.textContent = "✅ Daftar Piket";
+  }
+
+  function openDelete(dateStr, nama) {
+    deleteDateStr = dateStr; deleteName = nama;
+    document.getElementById("deleteMsg").innerHTML = `Hapus <b>${nama}</b> dari jadwal piket tanggal <b>${dateStr}</b>?`;
+    document.getElementById("deleteOverlay").classList.add("show");
+  }
+
+  function closeDelete() {
+    document.getElementById("deleteOverlay").classList.remove("show");
+  }
+
+  async function confirmDelete() {
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "delete", tanggal: deleteDateStr, nama: deleteName })
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast("🗑️ Berhasil dihapus");
+        closeDelete();
+        fetchPiket();
+      } else {
+        showToast(json.error || "Gagal menghapus", "error");
+      }
+    } catch { showToast("Error koneksi", "error"); }
+  }
+
+  // Init
+  fetchPiket();
+</script>
+</body>
+</html>
